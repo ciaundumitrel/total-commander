@@ -217,6 +217,65 @@ def rename():
         print(e)
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/create', methods=['POST'])
+def create():
+    """
+    Create a new file in the specified directory.
+    :return: JSON response indicating success or failure.
+    """
+    try:
+        data = request.json
+        dir_identifier = data['dir']
+        name = data['name']
+        directory = directory_manager.left_dir if dir_identifier == 'left' else directory_manager.right_dir
+        if 'file' in data['type']:
+            file_path = os.path.join(directory, name)
+            with open(file_path, 'w') as file:
+                file.write('')  # Create an empty file
+
+            return jsonify({"message": "File created successfully"}), 200
+        else:
+            folder_path = os.path.join(directory, name)
+
+            os.makedirs(folder_path, exist_ok=True)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/get_file_content')
+def get_file_content():
+    filename = request.args.get('filename')
+    dir_identifier = request.args.get('dir')
+
+    # Ensure the filename is valid and secure
+    directory = directory_manager.left_dir if dir_identifier == 'left' else directory_manager.right_dir
+
+    file_path = os.path.join(directory, filename)  # Adjust path as needed
+    try:
+        with open(file_path, 'r') as file:
+            content = file.read()
+        return content
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/save_file', methods=['POST'])
+def save_file():
+    data = request.json
+    filename = data['filename']
+    content = data['content']
+    # Ensure the filename is valid and secure
+    file_path = os.path.join(directory_manager.left_dir, filename)  # Adjust path as needed
+    try:
+        with open(file_path, 'w') as file:
+            file.write(content)
+        return jsonify({"message": "File saved successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.debug = True
     app.run(host='127.0.0.1', port=8080)

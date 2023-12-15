@@ -174,16 +174,14 @@ def delete_file():
     filename = data['filename']
     dir_identifier = data['dir']
 
-    # Determine the directory
     directory = directory_manager.left_dir if dir_identifier == 'left' else directory_manager.right_dir
-
     file_path = os.path.join(directory, filename)
 
     try:
         if os.path.isfile(file_path):
             os.remove(file_path)
         elif os.path.isdir(file_path):
-            shutil.rmtree(file_path)  # Use rmtree for directories
+            shutil.rmtree(file_path)
         else:
             return jsonify({"error": "File not found"}), 404
         return jsonify({"message": "File deleted successfully"}), 200

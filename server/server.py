@@ -189,6 +189,34 @@ def delete_file():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/rename', methods=['POST'])
+def rename():
+    """
+    Rename a file or directory.
+    :return: JSON response indicating success or failure.
+    """
+    try:
+        data = request.json
+        dir_identifier = data['dir']
+        old_name = data['filename']
+        new_name = data['newname']
+
+        extension = ''
+
+        current_dir = directory_manager.left_dir if dir_identifier == 'left' else directory_manager.right_dir
+        old_path = os.path.join(current_dir, old_name)
+        new_path = os.path.join(current_dir, new_name)
+
+        if '.' in old_name:
+            old_name, extension = old_name.split('.')
+
+        os.rename(old_path, new_path + '.' + extension)
+
+        return jsonify({"message": "Item renamed successfully"}), 200
+    except Exception as e:
+        print(e)
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.debug = True
     app.run(host='127.0.0.1', port=8080)

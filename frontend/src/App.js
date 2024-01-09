@@ -7,26 +7,18 @@ import { faFile, faMusic, faFilm, faImage, faFolder} from '@fortawesome/free-sol
 const getFileIcon = (filename) => {
   try {
     let extension= null;
+    if (filename === undefined || filename === null){
+      return
+    }
     if (filename.includes('.')){
       extension = filename.split('.').pop().toLowerCase();
     }
     switch (extension) {
-      case 'mp3':
-      case 'wav':
-        return faMusic;
-      case 'jpg':
-      case 'png':
-      case 'gif':
-        return faImage;
-      case 'mp4':
-      case 'avi':
-        return faFilm;
-
       case null:
         return faFolder;
 
       default:
-        return faFile; // Default file icon
+        return faFile;
     }
   }
   catch(e){
@@ -90,13 +82,25 @@ function App() {
   const fetchLeftDirContents = async () => {
     const response = await fetch(SERVER + '/list_left_dir');
     const data = await response.json();
-    setLeftDirContents(data);
+    if ("error" in data){
+      setLeftDirContents([]);
+      setLeftCurrentPath(data["error"]);
+    }
+    else{
+      setLeftDirContents(data);
+    }
   };
 
   const fetchRightDirContents = async () => {
     const response = await fetch(SERVER + '/list_right_dir');
     const data = await response.json();
-    setRightDirContents(data);
+    console.log(data);
+    if ("error" in data){
+
+    }
+    else{
+      setRightDirContents(data);
+    }
   };
   const goBackLeftDir = async () => {
     const response = await fetch(SERVER + '/go_back_left');
@@ -115,6 +119,11 @@ function App() {
   };
 
    const changeLeftDir = async (dirName) => {
+     if (dirName.includes('.')){
+        openEditDialog();
+        return
+     }
+
     const response = await fetch(SERVER + '/change_left_dir', {
       method: 'POST',
       headers: {
@@ -123,12 +132,16 @@ function App() {
       body: JSON.stringify({ dir_name: dirName }),
     });
     const data = await response.json();
-    setLeftDirContents(data);
     fetchLeftDirContents();
     fetchInitialPaths();
   };
 
   const changeRightDir = async (dirName) => {
+     if (dirName.includes('.')){
+        openEditDialog();
+        return
+     }
+
     const response = await fetch(SERVER + '/change_right_dir', {
       method: 'POST',
       headers: {
@@ -247,17 +260,15 @@ function formatBytes(bytes, decimals = 2) {
   };
 
  const handleCreateSubmit = async () => {
-  // Close the dialog
   setIsCreateDialogOpen(false);
 
   const data = {
     dir: activePane,
-    type: createType, // 'file' or 'folder'
-    name: newItemName, // The name entered by the user
+    type: createType,
+    name: newItemName,
   };
 
   try {
-    // Send the request to your server endpoint
     const response = await fetch(SERVER + '/create', {
       method: 'POST',
       headers: {
@@ -270,17 +281,12 @@ function formatBytes(bytes, decimals = 2) {
       throw new Error('Server responded with an error.');
     }
 
-    // Parse the JSON response (if expecting a response)
     const result = await response.json();
 
-    // Update your application state as necessary
-    // For example, refresh the file list to show the new file/folder
   } catch (error) {
     console.error('Error creating file/folder:', error);
-    // Handle errors (e.g., show an error message to the user)
   }
 
-  // Reset the dialog input field
   setNewItemName('');
   fetchLeftDirContents();
   fetchRightDirContents();
@@ -292,12 +298,11 @@ const openEditDialog = async () => {
   } else if (leftSelectedItems.length === 0 && rightSelectedItems.length === 1) {
     selectedItem = rightSelectedItems[0];
   } else {
-    // Handle case where no file or more than one file is selected
     console.error('Please select a single file to edit');
     return;
   }
 
-  setEditingFile(selectedItem); // Setting the selectedItem as editingFile
+  setEditingFile(selectedItem);
 
   try {
     const response = await fetch(`${SERVER}/get_file_content?filename=${selectedItem.name}&dir=${activePane}`);
@@ -370,8 +375,8 @@ const openEditDialog = async () => {
 
             <button onClick={() => setIsRenameDialogOpen(true)}>Rename</button>
 
-            <button onClick={openCreateFileDialog}>Create File</button>
-            <button onClick={openCreateFolderDialog}>Create Folder</button>
+            <button onClick={openCreateFileDialog}>New File</button>
+            <button onClick={openCreateFolderDialog}>New Dir</button>
           </div>
         </div>
         <div onClick={() => {

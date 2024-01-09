@@ -21,11 +21,19 @@ class DirectoryManager:
             return self.left_dir
         except Exception as e:
             print(e)
+            return self.left_dir
 
     def change_right_dir(self, dir_):
-        os.chdir(dir_)
-        self.right_dir = os.getcwd()
-        return self.right_dir
+        try:
+            os.chdir(dir_)
+            self.right_dir = os.getcwd()
+            if self.right_dir == "C:\\":
+                self.right_dir = r"C:\\"
+            return self.right_dir
+        except Exception as e:
+            print(e)
+            print('error')
+            return self.right_dir
 
 
 directory_manager = DirectoryManager()
@@ -38,6 +46,10 @@ def slash():
 
 @app.route('/go_back_left')
 def go_back_left():
+    """
+    Go back, left
+    :return:
+    """
     new_dir = os.path.dirname(directory_manager.left_dir)
     directory_manager.change_left_dir(new_dir)
     return jsonify(os.listdir(new_dir))
@@ -45,6 +57,10 @@ def go_back_left():
 
 @app.route('/go_back_right')
 def go_back_right():
+    """
+    Go back, right
+    :return:
+    """
     new_dir = os.path.dirname(directory_manager.right_dir)
     directory_manager.change_right_dir(new_dir)
     return jsonify(os.listdir(new_dir))
@@ -52,64 +68,105 @@ def go_back_right():
 
 @app.route('/list_left_dir')
 def list_left_dir():
+    """
+    List all left directories and files
+    :return: list of contents
+    """
     contents = []
-    for item in os.listdir(directory_manager.left_dir):
-        item_path = os.path.join(directory_manager.left_dir, item)
-        stats = os.stat(item_path)
-        creation_time = time.ctime(stats.st_ctime)  # or use st_mtime for last modified time
-        size = '<DIR>' if os.path.isdir(item_path) else stats.st_size
+    try:
+        for item in os.listdir(directory_manager.left_dir):
+            try:
+                item_path = os.path.join(directory_manager.left_dir, item)
+                stats = os.stat(item_path)
+                creation_time = time.ctime(stats.st_ctime)
+                size = '<DIR>' if os.path.isdir(item_path) else stats.st_size
 
-        contents.append({
-            "name": item,
-            "creation_time": creation_time,
-            "size": size
-        })
-    return jsonify(contents)
+                contents.append({
+                    "name": item,
+                    "creation_time": creation_time,
+                    "size": size
+                })
+            except:
+                pass
+        return jsonify(contents)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 @app.route('/list_right_dir')
 def list_right_dir():
+    """
+    List all right directories and files
+    :return: list of contents
+    """
     contents = []
-    for item in os.listdir(directory_manager.right_dir):
-        item_path = os.path.join(directory_manager.right_dir, item)
-        stats = os.stat(item_path)
-        creation_time = time.ctime(stats.st_ctime)  # or use st_mtime for last modified time
-        size = '<DIR>' if os.path.isdir(item_path) else stats.st_size
 
-        contents.append({
-            "name": item,
-            "creation_time": creation_time,
-            "size": size
-        })
-    return jsonify(contents)
+    try:
+        for item in os.listdir(directory_manager.right_dir):
+            item_path = os.path.join(directory_manager.right_dir, item)
+            try:
+                stats = os.stat(item_path)
+                creation_time = time.ctime(stats.st_ctime)
+                size = '<DIR>' if os.path.isdir(item_path) else stats.st_size
+                contents.append({
+                    "name": item,
+                    "creation_time": creation_time,
+                    "size": size
+                })
+            except:
+                pass
+        return jsonify(contents)
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 @app.route('/change_left_dir', methods=['POST'])
 def change_left_dir():
+    """
+    Change left directory
+    :return:
+    """
     try:
         dir_name = request.json.get('dir_name')
         new_dir = os.path.join(directory_manager.left_dir, dir_name)
         directory_manager.change_left_dir(new_dir)
         return jsonify(os.listdir(new_dir))
     except Exception as e:
-        raise e
+        print(e)
+        pass
 
 
 @app.route('/change_right_dir', methods=['POST'])
 def change_right_dir():
-    dir_name = request.json.get('dir_name')
-    new_dir = os.path.join(directory_manager.right_dir, dir_name)
-    directory_manager.change_right_dir(new_dir)
-    return jsonify(os.listdir(new_dir))
+    """
+     Change left directory
+     :return:
+     """
+    try:
+        dir_name = request.json.get('dir_name')
+        new_dir = os.path.join(directory_manager.right_dir, dir_name)
+        directory_manager.change_right_dir(new_dir)
+        return jsonify(os.listdir(new_dir))
+    except Exception as e:
+        print(e)
+        pass
 
 
 @app.route('/get_current_left_path')
 def get_current_left_path():
+    """
+    Return cwd of left panel
+    :return:
+    """
     return jsonify(directory_manager.left_dir)
 
 
 @app.route('/get_current_right_path')
 def get_current_right_path():
+    """
+    Return cwd of right panel
+    :return:
+    """
     return jsonify(directory_manager.right_dir)
 
 
@@ -118,18 +175,17 @@ def copy_file():
     data = request.json
     filename = data['filename']
 
-    source_dir = directory_manager.left_dir  # or use an identifier to choose the directory
-    destination_dir = directory_manager.right_dir  # or use an identifier
+    source_dir = directory_manager.left_dir
+    destination_dir = directory_manager.right_dir
 
     if 'right' in data['dir']:
-        source_dir = directory_manager.right_dir  # or use an identifier to choose the directory
-        destination_dir = directory_manager.left_dir  # or use an identifier
+        source_dir = directory_manager.right_dir
+        destination_dir = directory_manager.left_dir
 
     source_path = os.path.join(source_dir, filename)
     destination_path = os.path.join(destination_dir, filename)
 
     try:
-
         if os.path.isdir(source_path):
             shutil.copytree(source_path, destination_path)
         else:
@@ -207,12 +263,13 @@ def rename():
         old_path = os.path.join(current_dir, old_name)
         new_path = os.path.join(current_dir, new_name)
 
-        if '.' in old_name:
-            old_name, extension = old_name.split('.')
+        if os.path.isfile(old_path):
 
-        os.rename(old_path, new_path + '.' + extension)
-
+            os.rename(old_path, new_path)
+        elif os.path.isdir(old_path):
+            os.rename(old_path, new_path)
         return jsonify({"message": "Item renamed successfully"}), 200
+
     except Exception as e:
         print(e)
         return jsonify({"error": str(e)}), 500
@@ -233,7 +290,6 @@ def create():
             file_path = os.path.join(directory, name)
             with open(file_path, 'w') as file:
                 file.write('')  # Create an empty file
-
             return jsonify({"message": "File created successfully"}), 200
         else:
             folder_path = os.path.join(directory, name)
@@ -246,13 +302,16 @@ def create():
 
 @app.route('/get_file_content')
 def get_file_content():
+    """
+    Read file content
+    :return: String containing file content
+    """
     filename = request.args.get('filename')
     dir_identifier = request.args.get('dir')
 
-    # Ensure the filename is valid and secure
     directory = directory_manager.left_dir if dir_identifier == 'left' else directory_manager.right_dir
 
-    file_path = os.path.join(directory, filename)  # Adjust path as needed
+    file_path = os.path.join(directory, filename)
     try:
         with open(file_path, 'r') as file:
             content = file.read()
@@ -263,11 +322,14 @@ def get_file_content():
 
 @app.route('/save_file', methods=['POST'])
 def save_file():
+    """
+    Save file modifications
+    :return: JSON with the response of the operation
+    """
     data = request.json
     filename = data['filename']
     content = data['content']
-    # Ensure the filename is valid and secure
-    file_path = os.path.join(directory_manager.left_dir, filename)  # Adjust path as needed
+    file_path = os.path.join(directory_manager.left_dir, filename)
     try:
         with open(file_path, 'w') as file:
             file.write(content)
